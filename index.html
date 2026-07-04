@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Tournament - Live Auction</title>
+  <meta name="theme-color" content="#060d1a" />
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    :root {
+      --bg: #060d1a;
+      --card: #111827;
+      --card2: #1f2937;
+      --line: rgba(255,255,255,0.08);
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --green: #22c55e;
+      --red: #ef4444;
+      --blue: #38bdf8;
+      --gold: #f59e0b;
+    }
+
+    /* Custom Hide Scrollbar Utilities */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Premium Glow and Gradients */
+    .gold-glow {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.2);
+    }
+    
+    .green-glow {
+      box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+    }
+
+    body {
+      background-color: var(--bg);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+
+    /* Screen Sliding Animations */
+    #screenWrap {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 0;
+      padding: 12px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .screen.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .screen.left {
+      transform: translateX(-100%);
+    }
+
+    .screen.right {
+      transform: translateX(100%);
+    }
+
+    /* Smooth custom scrollbars for screens */
+    .screen::-webkit-scrollbar {
+      width: 4px;
+    }
+    .screen::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+    }
+
+    /* Confetti Burst Animations */
+    .confetti-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .confetti-wrap span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 8px;
+      height: 14px;
+      border-radius: 2px;
+      background: hsl(calc(var(--i) * 38), 90%, 58%);
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(var(--rot));
+      animation: confettiWrap 1.35s ease-out var(--delay) forwards;
+    }
+
+    @keyframes confettiWrap {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.4) rotate(var(--rot));
+      }
+      18% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--x)), -210px) rotate(calc(var(--rot) + 420deg));
+      }
+    }
+
+    /* Overlay Card Animation */
+    .overlay-card {
+      position: relative;
+      z-index: 1;
+      animation: soldWrapPop 0.58s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    @keyframes soldWrapPop {
+      0% {
+        transform: scale(0.82) rotate(-3deg);
+      }
+      60% {
+        transform: scale(1.06) rotate(2deg);
+      }
+      100% {
+        transform: scale(1) rotate(0deg);
+      }
+    }
+
+    /* Filter Tag Animations */
+    .filter-btn.active {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: #fbbf24;
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans h-screen flex justify-center">
+
+  <!-- Core App Shell Container -->
+  <div id="app" class="w-full max-w-[520px] h-full flex flex-col overflow-hidden bg-slate-950 relative border-x border-white/5 shadow-2xl">
+    
+    <!-- Header Section -->
+    <header class="flex-shrink-0 flex items-center justify-between gap-4 px-4 py-3 bg-slate-900 border-b border-white/10 z-10">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 flex items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-2xl flex-shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+          🏏
+        </div>
+        <div class="min-w-0">
+          <h1 class="text-lg font-black tracking-tight leading-none text-white flex items-center gap-1.5">
+            AUCTION <span class="text-amber-400 font-medium text-xs bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">LIVE</span>
+          </h1>
+          <p id="headerTournament" class="text-[11px] text-slate-400 font-bold mt-1 tracking-wide uppercase truncate">Loading tournament...</p>
+        </div>
+      </div>
+      <span class="flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)] transition-all" id="liveBadge">
+        ● LIVE
+      </span>
+    </header>
+
+    <!-- Score Summary Stats Grid (Touch Scrollable) -->
+    <section class="flex-shrink-0 w-full overflow-x-auto no-scrollbar bg-slate-950/80 border-b border-white/5 px-3 py-2 flex gap-2">
+      <div class="min-w-[70px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Teams</span>
+        <b id="sTeams" class="text-sm font-black text-white">0</b>
+      </div>
+      <div class="min-w-[70px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Players</span>
+        <b id="sPlayers" class="text-sm font-black text-white">0</b>
+      </div>
+      <div class="min-w-[70px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Purse</span>
+        <b id="sPurse" class="text-xs font-black text-amber-400">0</b>
+      </div>
+      <div class="min-w-[60px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Round</span>
+        <b id="sRound" class="text-sm font-black text-blue-400">1</b>
+      </div>
+      <div class="min-w-[60px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Sold</span>
+        <b id="sSold" class="text-sm font-black text-emerald-400">0</b>
+      </div>
+      <div class="min-w-[60px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Unsold</span>
+        <b id="sUnsold" class="text-sm font-black text-red-400">0</b>
+      </div>
+      <div class="min-w-[60px] flex-1 flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.02] border border-white/5">
+        <span class="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5 font-bold">Pending</span>
+        <b id="sPending" class="text-sm font-black text-slate-300">0</b>
+      </div>
+    </section>
+
+    <!-- Main Screens Swiper Workspace -->
+    <main id="screenWrap" class="flex-1 min-h-0 relative">
+      
+      <!-- SCREEN 1: Live Player & Updates -->
+      <section class="screen active flex flex-col gap-4" id="screenLive">
+        
+        <!-- Live Player Detail Card -->
+        <div class="rounded-2xl bg-slate-900 border border-white/5 p-4 flex flex-col shadow-lg">
+          <div class="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-white/5">
+            <h2 class="text-sm font-extrabold tracking-wider uppercase text-slate-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> Live Block
+            </h2>
+            <span class="px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded bg-amber-500/10 border border-amber-500/20 text-amber-400" id="currentBadge">
+              Awaiting
+            </span>
+          </div>
+          
+          <div class="min-h-[220px] flex flex-col items-center justify-center text-center py-2" id="currentPlayerArea">
+            <div class="w-24 h-24 rounded-full flex items-center justify-center bg-slate-950 border border-white/10 text-4xl text-slate-500 mb-3 shadow-inner">
+              👤
+            </div>
+            <h3 class="text-lg font-black text-slate-300">No Player Loaded</h3>
+            <p class="text-xs text-slate-400 mt-1 max-w-[220px] mx-auto">Waiting for the auction administrator to reveal the next player...</p>
+          </div>
+        </div>
+
+        <!-- Live Ticker Feed Card -->
+        <div class="flex-1 min-h-[180px] rounded-2xl bg-slate-900 border border-white/5 p-4 flex flex-col shadow-lg overflow-hidden">
+          <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/5">
+            <h2 class="text-sm font-extrabold tracking-wider uppercase text-slate-300 flex items-center gap-1.5">
+              📝 Real-Time Logs
+            </h2>
+            <span class="px-2 py-0.5 text-[10px] font-black rounded-md bg-white/5 border border-white/5 text-slate-400" id="feedCountBadge">
+              0
+            </span>
+          </div>
+          <ul class="flex-1 overflow-y-auto space-y-2.5 pr-1 no-scrollbar" id="feedList">
+            <li class="text-xs text-slate-500 text-center py-6">Waiting for live events...</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: Teams Performance Grid -->
+      <section class="screen flex flex-col gap-4" id="screenTeams">
+        <div class="flex items-center justify-between gap-3 pb-2 border-b border-white/5">
+          <h2 class="text-md font-extrabold tracking-wider uppercase text-slate-100 flex items-center gap-1.5">
+            🏆 Teams Dashboard
+          </h2>
+          <span class="px-2 py-0.5 text-[10px] font-black rounded bg-white/5 border border-white/5 text-slate-400" id="teamCountBadge">
+            0
+          </span>
+        </div>
+        <div id="teamsDashboard" class="space-y-3 pb-6">
+          <p class="text-xs text-slate-500 text-center py-8">Fetching rosters...</p>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: Players Filtered Dashboard -->
+      <section class="screen flex flex-col gap-3" id="screenPlayers">
+        
+        <!-- Search & Filter Controls -->
+        <div class="sticky top-0 bg-slate-950/95 pt-1 pb-3 z-10 space-y-2.5">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="text-md font-extrabold tracking-wider uppercase text-slate-100">
+              👥 Players Directory
+            </h2>
+            <span class="px-2 py-0.5 text-[10px] font-black rounded bg-white/5 border border-white/5 text-slate-400" id="playerTableBadge">
+              0
+            </span>
+          </div>
+          
+          <!-- Modern Search Bar -->
+          <div class="relative">
+            <input type="text" id="playerSearch" placeholder="Search by player name..." 
+                   class="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-amber-500/50 transition-all">
+            <span class="absolute right-3.5 top-3 text-[11px] pointer-events-none">🔍</span>
+          </div>
+
+          <!-- Horizontal Filter Pills -->
+          <div class="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <button class="filter-btn active flex-shrink-0 px-3.5 py-1.5 rounded-xl border border-white/5 bg-slate-900 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 transition-all" data-status="All">All</button>
+            <button class="filter-btn flex-shrink-0 px-3.5 py-1.5 rounded-xl border border-white/5 bg-slate-900 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 transition-all" data-status="Sold">Sold</button>
+            <button class="filter-btn flex-shrink-0 px-3.5 py-1.5 rounded-xl border border-white/5 bg-slate-900 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 transition-all" data-status="Unsold">Unsold</button>
+            <button class="filter-btn flex-shrink-0 px-3.5 py-1.5 rounded-xl border border-white/5 bg-slate-900 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 transition-all" data-status="Pending">Pending</button>
+          </div>
+        </div>
+
+        <!-- Rendered Player Directory List -->
+        <div id="playersList" class="space-y-2.5 pb-6">
+          <p class="text-xs text-slate-500 text-center py-8">Loading directory...</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="flex-shrink-0 grid grid-cols-3 bg-slate-950/95 border-t border-white/5 pb-safe z-20">
+      <button class="tab active flex flex-col items-center justify-center py-3.5 text-slate-500 hover:text-slate-300 font-extrabold transition-all relative border-t border-transparent" data-screen="screenLive">
+        <span class="text-lg leading-none mb-1">🎯</span>
+        <span class="text-[9px] uppercase tracking-widest font-black">Live Block</span>
+      </button>
+      <button class="tab flex flex-col items-center justify-center py-3.5 text-slate-500 hover:text-slate-300 font-extrabold transition-all relative border-t border-transparent" data-screen="screenTeams">
+        <span class="text-lg leading-none mb-1">🏆</span>
+        <span class="text-[9px] uppercase tracking-widest font-black">Teams</span>
+      </button>
+      <button class="tab flex flex-col items-center justify-center py-3.5 text-slate-500 hover:text-slate-300 font-extrabold transition-all relative border-t border-transparent" data-screen="screenPlayers">
+        <span class="text-lg leading-none mb-1">👥</span>
+        <span class="text-[9px] uppercase tracking-widest font-black">Directory</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- SOLD OVERLAY POPUP MODAL -->
+  <div id="resultOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md opacity-0 invisible pointer-events-none transition-all duration-300">
+    <div class="overlay-card w-[340px] p-8 text-center rounded-[2.5rem] bg-gradient-to-b from-slate-900 to-slate-950 border border-white/10 shadow-[0_30px_70px_rgba(0,0,0,0.8)] overflow-hidden relative">
+      <div class="absolute inset-0 bg-gradient-to-r from-emerald-500/5 via-transparent to-amber-500/5 pointer-events-none"></div>
+      
+      <div class="relative z-10 flex flex-col items-center">
+        <div class="overlay-badge inline-flex px-8 py-2.5 rounded-full text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 text-md font-black tracking-[0.25em] mb-6 shadow-[0_0_20px_rgba(16,185,129,0.1)]">
+          SOLD!
+        </div>
+        
+        <h2 id="oName" class="text-2xl font-black uppercase text-white tracking-tight mb-4 truncate w-full">
+          Player Name
+        </h2>
+        
+        <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-emerald-500 to-transparent mb-6"></div>
+        
+        <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Bought By</p>
+        <p id="oMeta" class="text-xl font-black text-amber-400 drop-shadow-md">
+          Team • 0 PTS
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Setup & App Logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Standard static fallback configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBB9VJE5KQ7hNkuGVp1KYoUo6GHlblC6eI",
+      authDomain: "cricket-auction-e470e.firebaseapp.com",
+      databaseURL: "https://cricket-auction-e470e-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cricket-auction-e470e",
+      storageBucket: "cricket-auction-e470e.firebasestorage.app",
+      messagingSenderId: "939681299699",
+      appId: "1:939681299699:web:8c62302c035251fa37cb86",
+      measurementId: "G-5T553ZD6BQ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const SETTINGS_REF = doc(db, "auction_meta", "settings");
+    const teamsCol = collection(db, "teams");
+    const playersCol = collection(db, "players");
+
+    const state = {
+      settings: null,
+      teams: [],
+      players: [],
+      feed: [],
+      prevLiveId: "",
+      prevStatusMap: new Map(),
+      activeFilter: "All",
+      searchQuery: ""
+    };
+
+    const $ = id => document.getElementById(id);
+
+    // Number conversion utility
+    function money(value) {
+      return Number(value || 0).toLocaleString("en-IN") + " PTS";
+    }
+
+    // High performance placeholder image generator
+    function placeholder(text = "?") {
+      return `https://placehold.co/150x150/0f172a/64748b?text=${encodeURIComponent(text || "?")}`;
+    }
+
+    // Dynamic state computation for team card analytics
+    function getTeamStats(team) {
+      const s = state.settings || {};
+      const bought = state.players.filter(p => p.status === "Sold" && p.soldToTeamId === team.id);
+      const spent = bought.reduce((sum, p) => sum + Number(p.soldPrice || 0), 0);
+      const purse = Number(s.teamPurse || team.purse || 0);
+      const perTeam = Number(s.playersPerTeam || 0);
+      const base = Number(s.basePrice || 0);
+      
+      const slotsFilled = bought.length;
+      const slotsLeft = Math.max(0, perTeam - slotsFilled);
+      const purseLeft = Math.max(0, purse - spent);
+      const reserve = Math.max(0, slotsLeft - 1) * base;
+      const maxBid = Math.max(0, purseLeft - reserve);
+
+      return { bought, spent, purseLeft, slotsFilled, slotsLeft, maxBid };
+    }
+
+    // Real-time Logger System
+    function pushFeed(text) {
+      state.feed.unshift({ text, time: new Date() });
+      state.feed = state.feed.slice(0, 30);
+      renderFeed();
+    }
+
+    // Summary Metric Bar renderer
+    function renderSummary() {
+      const s = state.settings || {};
+      const sold = state.players.filter(p => p.status === "Sold").length;
+      const unsold = state.players.filter(p => p.status === "Unsold").length;
+      const pending = state.players.filter(p => !p.status || p.status === "Pending").length;
+
+      document.title = `${s.tournamentName || 'Tournament'} - Live Auction`;
+      $("headerTournament").textContent = s.tournamentName || "Live Auction Dashboard";
+      $("sTeams").textContent = s.numTeams || state.teams.length || 0;
+      $("sPlayers").textContent = s.numPlayers || state.players.length || 0;
+      $("sPurse").textContent = Number(s.teamPurse || 0).toLocaleString("en-IN");
+      $("sRound").textContent = s.currentRound || 1;
+      $("sSold").textContent = sold;
+      $("sUnsold").textContent = unsold;
+      $("sPending").textContent = pending;
+
+      const badge = $("liveBadge");
+      if (s.auctionEnded) {
+        badge.textContent = "● COMPLETE";
+        badge.className = "flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-widest text-slate-400 bg-slate-800 border border-slate-700 shadow-none";
+      } else {
+        badge.textContent = "● LIVE";
+        badge.className = "flex-shrink-0 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)] animate-pulse";
+      }
+    }
+
+    // Active block renderer (Screen 1)
+    function renderCurrentPlayer() {
+      const liveId = state.settings?.livePlayerId || "";
+      const player = state.players.find(p => p.id === liveId);
+      const wrap = $("currentPlayerArea");
+      const badge = $("currentBadge");
+
+      if (!player) {
+        wrap.innerHTML = `
+          <div class="w-24 h-24 rounded-full flex items-center justify-center bg-slate-950 border border-white/10 text-4xl text-slate-600 mb-4 shadow-inner">👤</div>
+          <h3 class="text-md font-bold text-slate-300">No Player On The Block</h3>
+          <p class="text-xs text-slate-500 mt-1 max-w-[220px] mx-auto">${state.settings?.auctionEnded ? "The auction has concluded." : "Waiting for administrator to release next player..."}</p>
+        `;
+        badge.textContent = state.settings?.auctionEnded ? "Complete" : "Awaiting";
+        badge.className = "px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded bg-slate-800 border border-slate-700 text-slate-400";
+        return;
+      }
+
+      const reauction = Number(player.reauctionCount || 0) > 0;
+      badge.textContent = reauction ? "Re-Auction" : "Live Block";
+      badge.className = reauction 
+        ? "px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded bg-red-500/10 border border-red-500/20 text-red-400"
+        : "px-2.5 py-0.5 text-[10px] font-black tracking-widest uppercase rounded bg-amber-500/10 border border-amber-500/20 text-amber-400";
+
+      wrap.innerHTML = `
+        <div class="relative mb-3">
+          <div class="absolute inset-0 bg-amber-500/10 rounded-full blur-md"></div>
+          <img class="w-28 h-28 rounded-full object-cover border-4 border-slate-950 bg-slate-950 relative z-10 shadow-lg" src="${player.imageUrl || placeholder(player.name?.[0])}" alt="${player.name}">
+        </div>
+        
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold tracking-wider bg-slate-950 border border-white/5 text-amber-400 mb-2">
+          💰 Base Price: ${money(player.basePrice || state.settings?.basePrice)}
+        </div>
+        
+        <h3 class="text-xl font-black text-white leading-tight mb-2 tracking-tight flex items-center gap-2 justify-center">
+          ${player.isIconPlayer ? '<span class="text-amber-400">⭐</span>' : ''}${player.name}
+        </h3>
+        
+        <div class="flex flex-wrap justify-center gap-1.5 mt-1">
+          <span class="px-3 py-1 rounded-lg text-[10px] font-bold text-slate-300 bg-white/[0.04] border border-white/5">🏏 Bat: ${player.batting || "-"}</span>
+          <span class="px-3 py-1 rounded-lg text-[10px] font-bold text-slate-300 bg-white/[0.04] border border-white/5">🥎 Bowl: ${player.bowling || "-"}</span>
+          <span class="px-3 py-1 rounded-lg text-[10px] font-bold text-blue-300 bg-blue-500/5 border border-blue-500/10">Round ${player.auctionRound || state.settings?.currentRound || 1}</span>
+        </div>
+      `;
+    }
+
+    // Teams presentation page (Screen 2)
+    function renderTeams() {
+      const wrap = $("teamsDashboard");
+      $("teamCountBadge").textContent = state.teams.length;
+
+      if (!state.teams.length) {
+        wrap.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">No teams found.</p>`;
+        return;
+      }
+
+      wrap.innerHTML = state.teams.map(team => {
+        const stats = getTeamStats(team);
+        const logo = team.logoUrl || placeholder(team.name?.[0] || "T");
+
+        const rosterHtml = stats.bought.length
+          ? stats.bought.map(p => `
+              <div class="flex items-center justify-between gap-3 p-2 rounded-xl bg-slate-950/40 border border-white/5 text-xs">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <img class="w-7 h-7 rounded-full object-cover flex-shrink-0 border border-white/10" src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${p.name}">
+                  <span class="font-extrabold truncate text-slate-300">${p.isIconPlayer ? '⭐ ' : ''}${p.name}</span>
+                </div>
+                <b class="text-amber-400 font-extrabold flex-shrink-0">${money(p.soldPrice)}</b>
+              </div>
+            `).join("")
+          : `<p class="text-[11px] text-slate-500 py-1 italic">No players acquired yet.</p>`;
+
+        return `
+          <article class="rounded-2xl bg-slate-900 border border-white/5 p-4 shadow-md transition-all">
+            
+            <!-- Team General Meta Info -->
+            <div class="flex items-center justify-between gap-3 mb-3 pb-2 border-b border-white/5">
+              <div class="flex items-center gap-3 min-w-0">
+                <img class="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0" src="${logo}" alt="${team.name}">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-black text-white leading-none">${team.name || "Team"}</h3>
+                  <p class="text-[11px] text-slate-400 font-bold mt-1.5">${stats.slotsFilled}/${state.settings?.playersPerTeam || 0} Slots Filled</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Financial Metrics Dashboard Grid -->
+            <div class="grid grid-cols-2 gap-2 text-center mb-3">
+              <div class="bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                <span class="block text-[8px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">Purse Left</span>
+                <b class="text-xs font-black text-emerald-400">${money(stats.purseLeft)}</b>
+              </div>
+              <div class="bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                <span class="block text-[8px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">Max Bid Value</span>
+                <b class="text-xs font-black text-amber-400">${money(stats.maxBid)}</b>
+              </div>
+              <div class="bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                <span class="block text-[8px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">Spent Amount</span>
+                <b class="text-xs font-black text-slate-300">${money(stats.spent)}</b>
+              </div>
+              <div class="bg-slate-950/40 p-2 rounded-xl border border-white/5">
+                <span class="block text-[8px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">Slots Left</span>
+                <b class="text-xs font-black text-slate-300">${stats.slotsLeft}</b>
+              </div>
+            </div>
+
+            <!-- Roster Players List (Always Visible) -->
+            <div class="mt-4 pt-3 border-t border-white/5 space-y-1.5">
+              <h4 class="text-[10px] font-extrabold tracking-wider uppercase text-slate-500 mb-2">Roster Players (${stats.bought.length})</h4>
+              ${rosterHtml}
+            </div>
+
+          </article>
+        `;
+      }).join("");
+    }
+
+    // Dynamic color matching for status badges
+    function statusStyle(status) {
+      if (status === "Sold") return "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
+      if (status === "Unsold") return "text-red-400 bg-red-500/10 border border-red-500/20";
+      return "text-blue-400 bg-blue-500/10 border border-blue-500/20";
+    }
+
+    // Interactive directory page with search/status filters (Screen 3)
+    function renderPlayers() {
+      const wrap = $("playersList");
+      
+      // Filter dynamically using localized state
+      let filtered = state.players.filter(p => {
+        const matchesStatus = (state.activeFilter === "All") || 
+                              (state.activeFilter === "Sold" && p.status === "Sold") ||
+                              (state.activeFilter === "Unsold" && p.status === "Unsold") ||
+                              (state.activeFilter === "Pending" && (!p.status || p.status === "Pending"));
+        
+        const matchesSearch = !state.searchQuery || 
+                             (p.name || "").toLowerCase().includes(state.searchQuery.toLowerCase());
+
+        return matchesStatus && matchesSearch;
+      });
+
+      $("playerTableBadge").textContent = filtered.length;
+
+      if (!filtered.length) {
+        wrap.innerHTML = `<p class="text-xs text-slate-500 text-center py-10">No matching players found.</p>`;
+        return;
+      }
+
+      // Sort alphabetically
+      const sorted = [...filtered].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" })
+      );
+
+      wrap.innerHTML = sorted.map((p, i) => {
+        const isSold = p.status === "Sold";
+        const metaLine = isSold 
+          ? `<strong class="text-amber-400 text-xs font-black block mt-0.5">${money(p.soldPrice)}</strong>`
+          : `<span class="text-[10px] text-slate-500 font-bold block mt-1">Round ${p.auctionRound || 1}</span>`;
+
+        return `
+          <article class="flex items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900 border border-white/5 shadow-sm">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="text-[10px] font-black text-slate-600 w-4 text-center">${i + 1}</span>
+              <img class="w-10 h-10 rounded-full object-cover border border-white/10 bg-slate-950 flex-shrink-0" src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${p.name}">
+              <div class="min-w-0">
+                <h3 class="text-xs font-extrabold text-white truncate flex items-center gap-1">
+                  ${p.isIconPlayer ? '⭐ ' : ''}${p.name || "Player"}
+                </h3>
+                <div class="flex items-center gap-1.5 text-[9px] text-slate-400 font-bold mt-1">
+                  <span>🏏 ${p.batting || "-"}</span>
+                  <span>•</span>
+                  <span>🥎 ${p.bowling || "-"}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="text-right flex-shrink-0 flex flex-col items-end">
+              <span class="px-2.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase ${statusStyle(p.status)}">
+                ${p.status || "Pending"}
+              </span>
+              ${isSold ? `<span class="text-[10px] font-extrabold text-slate-300 mt-1 truncate max-w-[110px]">${p.soldToTeamName}</span>` : ""}
+              ${metaLine}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    // Dynamic feed display
+    function renderFeed() {
+      const list = $("feedList");
+      $("feedCountBadge").textContent = state.feed.length;
+
+      if (!state.feed.length) {
+        list.innerHTML = `<li class="text-xs text-slate-500 text-center py-8">Waiting for updates...</li>`;
+        return;
+      }
+
+      list.innerHTML = state.feed.map(item => `
+        <li class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/5 text-xs leading-relaxed animate-fade-in">
+          <span class="text-slate-300 font-semibold">${item.text}</span>
+          <small class="text-[9px] text-slate-500 font-black bg-white/5 px-2 py-0.5 rounded flex-shrink-0">${item.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</small>
+        </li>
+      `).join("");
+    }
+
+    // Premium visual event handler when sold
+    function showSoldOverlay(player) {
+      const overlay = $("resultOverlay");
+
+      // Wipe prior confetti nodes
+      overlay.querySelector(".confetti-wrap")?.remove();
+
+      // Spawn custom canvas styled confetti bits
+      const confetti = document.createElement("div");
+      confetti.className = "confetti-wrap";
+      confetti.innerHTML = Array.from({ length: 42 }, (_, i) =>
+        `<span style="--i:${i}; --delay:${(i % 10) * 0.045}s; --x:${(i % 2 ? 1 : -1) * (20 + (i % 7) * 15)}px; --rot:${(i * 47) % 360}deg;"></span>`
+      ).join("");
+
+      $("oName").textContent = player.name || "Player";
+      $("oMeta").innerHTML = `<span class="font-bold text-slate-300">${player.soldToTeamName || "Team"}</span> <br> <b class="text-2xl mt-2 inline-block font-black text-amber-400 drop-shadow">${money(player.soldPrice)}</b>`;
+
+      overlay.prepend(confetti);
+      overlay.classList.add("show");
+
+      setTimeout(() => overlay.classList.remove("show"), 3200);
+      setTimeout(() => confetti.remove(), 3600);
+    }
+
+    // Changes detector on snapshots
+    function detectPlayerChanges(players) {
+      players.forEach(player => {
+        const oldStatus = state.prevStatusMap.get(player.id);
+        const newStatus = player.status || "Pending";
+
+        if (newStatus === "Sold" && oldStatus !== "Sold") {
+          pushFeed(`✅ ${player.name} sold to ${player.soldToTeamName} for ${money(player.soldPrice)}`);
+          showSoldOverlay(player);
+        }
+
+        if (newStatus === "Unsold" && oldStatus !== "Unsold") {
+          pushFeed(`❌ ${player.name} marked unsold`);
+        }
+      });
+
+      state.prevStatusMap = new Map(players.map(p => [p.id, p.status || "Pending"]));
+    }
+
+    // Batch renderer
+    function renderAll() {
+      renderSummary();
+      renderCurrentPlayer();
+      renderTeams();
+      renderPlayers();
+      renderFeed();
+    }
+
+    // Navigation swiping handlers
+    const screenOrder = ["screenLive", "screenTeams", "screenPlayers"];
+    let activeScreenIndex = 0;
+
+    function switchScreen(id) {
+      const nextIndex = screenOrder.indexOf(id);
+      if (nextIndex === -1 || nextIndex === activeScreenIndex) return;
+
+      document.querySelectorAll(".screen").forEach((screen, index) => {
+        screen.classList.remove("active", "left", "right");
+
+        if (index < nextIndex) screen.classList.add("left");
+        if (index > nextIndex) screen.classList.add("right");
+      });
+
+      const nextScreen = document.getElementById(id);
+      nextScreen.classList.remove("left", "right");
+      nextScreen.classList.add("active");
+
+      document.querySelectorAll(".tab").forEach(tab => {
+        const isCurrent = tab.dataset.screen === id;
+        tab.classList.toggle("active", isCurrent);
+        tab.classList.toggle("text-slate-500", !isCurrent);
+        tab.classList.toggle("text-amber-400", isCurrent);
+        tab.classList.toggle("border-amber-400", isCurrent);
+      });
+
+      activeScreenIndex = nextIndex;
+    }
+
+    // Register Click triggers on bottom buttons
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
+    });
+
+    // Register directory filters clicks
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+        e.target.classList.add("active");
+        state.activeFilter = e.target.dataset.status;
+        renderPlayers();
+      });
+    });
+
+    // Setup input queries listener
+    $("playerSearch").addEventListener("input", (e) => {
+      state.searchQuery = e.target.value;
+      renderPlayers();
+    });
+
+    // Subscriptions setup
+    onSnapshot(SETTINGS_REF, snap => {
+      state.settings = snap.exists() ? snap.data() : null;
+
+      const liveId = state.settings?.livePlayerId || "";
+      if (liveId && liveId !== state.prevLiveId) {
+        const player = state.players.find(p => p.id === liveId);
+        if (player) pushFeed(`🎯 On the Block: ${player.name}`);
+      }
+
+      state.prevLiveId = liveId;
+      renderAll();
+    });
+
+    onSnapshot(teamsCol, snap => {
+      state.teams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderAll();
+    });
+
+    onSnapshot(playersCol, snap => {
+      const players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      detectPlayerChanges(players);
+      state.players = players;
+      renderAll();
+    });
+  </script>
+</body>
+</html>
