@@ -41,10 +41,23 @@
       box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
     }
 
+    /* Mobile Browser Viewport Fixes */
+    html, body {
+      height: 100vh; /* Fallback for older browsers */
+      height: 100dvh; /* Dynamic height for Android Chrome URL/Nav bar */
+      margin: 0;
+      overflow: hidden; /* Prevent native body bounce/scroll */
+    }
+
     body {
       background-color: var(--bg);
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
+    }
+    
+    /* Device Gesture Bar Safety */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 8px);
     }
 
     /* Screen Sliding Animations */
@@ -155,7 +168,7 @@
     }
   </style>
 </head>
-<body class="text-slate-100 font-sans h-screen flex justify-center">
+<body class="text-slate-100 font-sans flex justify-center w-full">
 
   <!-- Core App Shell Container -->
   <div id="app" class="w-full max-w-[520px] h-full flex flex-col overflow-hidden bg-slate-950 relative border-x border-white/5 shadow-2xl">
@@ -552,7 +565,7 @@
 
             <!-- Roster Players List (Always Visible) -->
             <div class="mt-4 pt-3 border-t border-white/5 space-y-1.5">
-              <h4 class="text-[10px] font-extrabold tracking-wider uppercase text-slate-500 mb-2">Roster Players (${stats.bought.length})</h4>
+              <h4 class="text-[10px] font-extrabold tracking-wider uppercase text-slate-500 mb-2"> Players (${stats.bought.length})</h4>
               ${rosterHtml}
             </div>
 
