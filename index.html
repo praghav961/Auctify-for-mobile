@@ -6,6 +6,9 @@
   <title>Tournament - Live Auction</title>
   <meta name="theme-color" content="#060d1a" />
 
+  <!-- Android Chrome resizes the visual viewport as its address bar / gesture
+       nav bar show or hide. This measures the real visible height with JS and 
+       keeps it in sync via the --vh custom property. -->
   <script>
     (function () {
       function setRealViewportHeight() {
@@ -38,6 +41,7 @@
 
     img { display: block; max-width: 100%; }
 
+    /* ============ Design tokens ============ */
     :root {
       --bg: #060d1a;
       --text: #f3f4f6;
@@ -75,17 +79,18 @@
       --vh: 1vh; /* corrected by JS above for Android */
     }
 
-    /* ============ Mobile viewport / shell ============ */
+    /* ============ Mobile viewport / Shell Locking ============ */
     html, body {
-      /* Fixed position strictly locks the layout to prevent whole-page browser scroll */
+      /* Lock the viewport entirely to prevent double-scrolling */
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
+      overflow: hidden;
+      touch-action: none; /* Prevents native pull-to-refresh and body scroll */
+      
       height: 100vh;
       height: 100dvh;
       height: calc(var(--vh, 1vh) * 100);
       margin: 0;
-      overflow: hidden;
-      touch-action: none; /* Disables outer browser swipe-to-refresh/bounce */
     }
 
     body {
@@ -125,7 +130,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 16px;
       padding: 12px 16px;
       background-color: var(--slate-900);
       border-bottom: 1px solid var(--white-10);
@@ -134,33 +139,7 @@
     }
 
     .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    
-    .header-right { 
-      display: flex; 
-      align-items: center; 
-      gap: 12px; 
-      flex-shrink: 0; 
-    }
-
-    .info-btn {
-      background-color: var(--white-05);
-      border: 1px solid var(--white-10);
-      color: var(--slate-300);
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    
-    .info-btn:active {
-      background-color: var(--white-10);
-      transform: scale(0.95);
-    }
+    .header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
     .icon-badge {
       width: 40px; height: 40px;
@@ -209,7 +188,6 @@
     }
 
     .live-badge {
-      flex-shrink: 0;
       padding: 6px 12px;
       border-radius: 9999px;
       font-size: 10px;
@@ -230,6 +208,19 @@
       box-shadow: none;
       animation: none;
     }
+
+    .info-btn {
+      width: 32px; height: 32px;
+      border-radius: 9999px;
+      background-color: var(--slate-800);
+      border: 1px solid var(--white-10);
+      color: var(--slate-300);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .info-btn:active { transform: scale(0.9); }
 
     @keyframes pulseSoft { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
@@ -283,11 +274,14 @@
       position: absolute;
       inset: 0;
       padding: 12px;
+      
+      /* Re-enable scrolling specifically for screens */
       overflow-y: auto;
       overflow-x: hidden;
-      -webkit-overflow-scrolling: touch; /* Smooth iOS scroll */
-      touch-action: pan-y; /* Explicitly allow vertical scrolling inside screens only */
-      overscroll-behavior: contain; /* Prevent scrolling bounds bleed */
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -624,7 +618,7 @@
     .tab-icon { font-size: 18px; line-height: 1; margin-bottom: 4px; }
     .tab-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 900; }
 
-    /* ============ Overlays (Sold & Info) ============ */
+    /* ============ Shared Overlay Layout ============ */
     .result-overlay {
       position: fixed; inset: 0; z-index: 50;
       display: flex; align-items: center; justify-content: center;
@@ -693,6 +687,27 @@
       18% { opacity: 1; }
       100% { opacity: 0; transform: translate(calc(-50% + var(--x)), -210px) rotate(calc(var(--rot) + 420deg)); }
     }
+
+    /* ============ Unsold Overlay Styles ============ */
+    .overlay-card-unsold {
+      animation: unsoldStamp 0.45s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    @keyframes unsoldStamp {
+      0% { transform: scale(1.8) rotate(10deg); opacity: 0; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+    .overlay-glow-unsold {
+      background: linear-gradient(to right, rgba(239,68,68,0.05), transparent, rgba(239,68,68,0.05));
+    }
+    .overlay-badge-unsold {
+      color: var(--red-400);
+      background-color: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      box-shadow: 0 0 20px rgba(239,68,68,0.1);
+    }
+    .overlay-divider-unsold {
+      background: linear-gradient(to right, transparent, var(--red-500), transparent);
+    }
   </style>
 </head>
 <body>
@@ -712,8 +727,8 @@
         </div>
       </div>
       <div class="header-right">
-        <button id="infoBtn" class="info-btn" aria-label="About Software">ℹ️</button>
         <span class="live-badge" id="liveBadge">● LIVE</span>
+        <button id="infoBtn" class="info-btn" aria-label="Software Information">ℹ️</button>
       </div>
     </header>
 
@@ -843,16 +858,29 @@
     </div>
   </div>
 
+  <!-- UNSOLD OVERLAY POPUP MODAL -->
+  <div id="unsoldOverlay" class="result-overlay">
+    <div class="overlay-card overlay-card-unsold">
+      <div class="overlay-glow overlay-glow-unsold"></div>
+      <div class="overlay-content">
+        <div class="overlay-badge overlay-badge-unsold">UNSOLD</div>
+        <h2 id="uName" class="overlay-name">Player Name</h2>
+        <div class="overlay-divider overlay-divider-unsold"></div>
+        <p class="overlay-label" style="color: var(--slate-400); font-size: 14px;">No bids received</p>
+      </div>
+    </div>
+  </div>
+
   <!-- SOFTWARE INFO MODAL -->
   <div id="infoModal" class="result-overlay">
-    <div class="overlay-card" style="padding: 32px 24px; max-width: 320px; border-radius: 24px;">
-      <div style="font-size: 36px; margin-bottom: 12px;">💻</div>
-      <h3 style="color: #fff; font-size: 16px; font-weight: 800; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em;">About Software</h3>
-      <p style="color: var(--slate-300); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
-        This Software is designed and developed by <br>
-        <strong style="color: var(--amber-400); font-size: 16px; display: inline-block; margin-top: 6px;">Raghav Mahendra Patel</strong>
+    <div class="overlay-card" style="padding: 24px; animation: soldWrapPop 0.4s ease;">
+      <h2 style="font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 12px;">About Software</h2>
+      <p style="color: var(--slate-300); font-size: 14px; line-height: 1.5; margin-bottom: 24px;">
+        This Software is designed and developed by Raghav Mahendra Patel.
       </p>
-      <button id="closeInfoBtn" style="background-color: var(--white-10); border: 1px solid var(--white-10); color: #fff; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; width: 100%; transition: all 0.2s;">Close</button>
+      <button id="closeInfoBtn" style="padding: 10px 24px; background: var(--amber-500); color: #000; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; transition: all 0.2s;">
+        Close
+      </button>
     </div>
   </div>
 
@@ -861,6 +889,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // Standard static fallback configuration
     const firebaseConfig = {
       apiKey: "AIzaSyBB9VJE5KQ7hNkuGVp1KYoUo6GHlblC6eI",
       authDomain: "cricket-auction-e470e.firebaseapp.com",
@@ -897,10 +926,12 @@
       return Number(value || 0).toLocaleString("en-IN") + " PTS";
     }
 
+    // High performance placeholder image generator
     function placeholder(text = "?") {
       return `https://placehold.co/150x150/0f172a/64748b?text=${encodeURIComponent(text || "?")}`;
     }
 
+    // Dynamic state computation for team card analytics
     function getTeamStats(team) {
       const s = state.settings || {};
       const bought = state.players.filter(p => p.status === "Sold" && p.soldToTeamId === team.id);
@@ -918,12 +949,14 @@
       return { bought, spent, purseLeft, slotsFilled, slotsLeft, maxBid };
     }
 
+    // Real-time Logger System
     function pushFeed(text) {
       state.feed.unshift({ text, time: new Date() });
       state.feed = state.feed.slice(0, 30);
       renderFeed();
     }
 
+    // Summary Metric Bar renderer
     function renderSummary() {
       const s = state.settings || {};
       const sold = state.players.filter(p => p.status === "Sold").length;
@@ -950,6 +983,7 @@
       }
     }
 
+    // Active block renderer (Screen 1)
     function renderCurrentPlayer() {
       const liveId = state.settings?.livePlayerId || "";
       const player = state.players.find(p => p.id === liveId);
@@ -976,12 +1010,15 @@
           <div class="player-photo-glow"></div>
           <img class="player-photo" src="${player.imageUrl || placeholder(player.name?.[0])}" alt="${player.name}">
         </div>
+
         <div class="player-base-price">
           💰 Base Price: ${money(player.basePrice || state.settings?.basePrice)}
         </div>
+
         <h3 class="player-name-title">
           ${player.isIconPlayer ? '<span class="player-icon-star">⭐</span>' : ''}${player.name}
         </h3>
+
         <div class="player-tags">
           <span class="tag">🏏 Bat: ${player.batting || "-"}</span>
           <span class="tag">🥎 Bowl: ${player.bowling || "-"}</span>
@@ -990,6 +1027,7 @@
       `;
     }
 
+    // Teams presentation page (Screen 2)
     function renderTeams() {
       const wrap = $("teamsDashboard");
       $("teamCountBadge").textContent = state.teams.length;
@@ -1053,22 +1091,27 @@
       }).join("");
     }
 
+    // Dynamic color matching for status badges
     function statusStyle(status) {
       if (status === "Sold") return "status-badge is-sold";
       if (status === "Unsold") return "status-badge is-unsold";
       return "status-badge is-pending";
     }
 
+    // Interactive directory page with search/status filters (Screen 3)
     function renderPlayers() {
       const wrap = $("playersList");
 
+      // Filter dynamically using localized state
       let filtered = state.players.filter(p => {
         const matchesStatus = (state.activeFilter === "All") ||
                               (state.activeFilter === "Sold" && p.status === "Sold") ||
                               (state.activeFilter === "Unsold" && p.status === "Unsold") ||
                               (state.activeFilter === "Pending" && (!p.status || p.status === "Pending"));
+
         const matchesSearch = !state.searchQuery ||
                              (p.name || "").toLowerCase().includes(state.searchQuery.toLowerCase());
+
         return matchesStatus && matchesSearch;
       });
 
@@ -1079,6 +1122,7 @@
         return;
       }
 
+      // Sort alphabetically
       const sorted = [...filtered].sort((a, b) =>
         (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" })
       );
@@ -1105,6 +1149,7 @@
                 </div>
               </div>
             </div>
+
             <div class="player-card-right">
               <span class="${statusStyle(p.status)}">
                 ${p.status || "Pending"}
@@ -1117,6 +1162,7 @@
       }).join("");
     }
 
+    // Dynamic feed display
     function renderFeed() {
       const list = $("feedList");
       $("feedCountBadge").textContent = state.feed.length;
@@ -1134,14 +1180,18 @@
       `).join("");
     }
 
+    // Premium visual event handler when sold
     function showSoldOverlay(player) {
       const overlay = $("resultOverlay");
+
+      // Wipe prior confetti nodes
       overlay.querySelector(".confetti-wrap")?.remove();
 
+      // Spawn custom canvas styled confetti bits
       const confetti = document.createElement("div");
       confetti.className = "confetti-wrap";
-      confetti.innerHTML = Array.from({ length: 42 }, (_, i) =>
-        `<span style="--i:${i}; --delay:${(i % 10) * 0.045}s; --x:${(i % 2 ? 1 : -1) * (20 + (i % 7) * 15)}px; --rot:${(i * 47) % 360}deg;"></span>`
+      confetti.innerHTML = Array.from({ length: 60 }, (_, i) =>
+        `<span style="--i:${i}; --delay:${(i % 10) * 0.045}s; --x:${(i % 2 ? 1 : -1) * (30 + (i % 7) * 20)}px; --rot:${(i * 47) % 360}deg;"></span>`
       ).join("");
 
       $("oName").textContent = player.name || "Player";
@@ -1154,6 +1204,18 @@
       setTimeout(() => confetti.remove(), 3600);
     }
 
+    // Visual event handler when unsold
+    function showUnsoldOverlay(player) {
+      const overlay = $("unsoldOverlay");
+      $("uName").textContent = player.name || "Player";
+
+      overlay.classList.add("show");
+      
+      // Hide after a brief moment
+      setTimeout(() => overlay.classList.remove("show"), 3000);
+    }
+
+    // Changes detector on snapshots
     function detectPlayerChanges(players) {
       players.forEach(player => {
         const oldStatus = state.prevStatusMap.get(player.id);
@@ -1166,11 +1228,14 @@
 
         if (newStatus === "Unsold" && oldStatus !== "Unsold") {
           pushFeed(`❌ ${player.name} marked unsold`);
+          showUnsoldOverlay(player);
         }
       });
+
       state.prevStatusMap = new Map(players.map(p => [p.id, p.status || "Pending"]));
     }
 
+    // Batch renderer
     function renderAll() {
       renderSummary();
       renderCurrentPlayer();
@@ -1179,6 +1244,7 @@
       renderFeed();
     }
 
+    // Navigation swiping handlers
     const screenOrder = ["screenLive", "screenTeams", "screenPlayers"];
     let activeScreenIndex = 0;
 
@@ -1188,6 +1254,7 @@
 
       document.querySelectorAll(".screen").forEach((screen, index) => {
         screen.classList.remove("active", "left", "right");
+
         if (index < nextIndex) screen.classList.add("left");
         if (index > nextIndex) screen.classList.add("right");
       });
@@ -1204,14 +1271,12 @@
       activeScreenIndex = nextIndex;
     }
 
-    // Modal Interaction Listeners
-    $("infoBtn").addEventListener("click", () => $("infoModal").classList.add("show"));
-    $("closeInfoBtn").addEventListener("click", () => $("infoModal").classList.remove("show"));
-
+    // Register Click triggers on bottom buttons
     document.querySelectorAll(".tab").forEach(tab => {
       tab.addEventListener("click", () => switchScreen(tab.dataset.screen));
     });
 
+    // Register directory filters clicks
     document.querySelectorAll(".filter-btn").forEach(btn => {
       btn.addEventListener("click", (e) => {
         document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
@@ -1221,18 +1286,30 @@
       });
     });
 
+    // Setup input queries listener
     $("playerSearch").addEventListener("input", (e) => {
       state.searchQuery = e.target.value;
       renderPlayers();
     });
 
+    // Setup Info Modal Triggers
+    $("infoBtn").addEventListener("click", () => {
+      $("infoModal").classList.add("show");
+    });
+    $("closeInfoBtn").addEventListener("click", () => {
+      $("infoModal").classList.remove("show");
+    });
+
+    // Subscriptions setup
     onSnapshot(SETTINGS_REF, snap => {
       state.settings = snap.exists() ? snap.data() : null;
+
       const liveId = state.settings?.livePlayerId || "";
       if (liveId && liveId !== state.prevLiveId) {
         const player = state.players.find(p => p.id === liveId);
         if (player) pushFeed(`🎯 On the Block: ${player.name}`);
       }
+
       state.prevLiveId = liveId;
       renderAll();
     });
