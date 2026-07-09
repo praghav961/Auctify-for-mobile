@@ -889,17 +889,17 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // Standard static fallback configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyBB9VJE5KQ7hNkuGVp1KYoUo6GHlblC6eI",
-      authDomain: "cricket-auction-e470e.firebaseapp.com",
-      databaseURL: "https://cricket-auction-e470e-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "cricket-auction-e470e",
-      storageBucket: "cricket-auction-e470e.firebasestorage.app",
-      messagingSenderId: "939681299699",
-      appId: "1:939681299699:web:8c62302c035251fa37cb86",
-      measurementId: "G-5T553ZD6BQ"
-    };
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA33l9KR8Rnjob9QHfZbEa4aSHaNdDc0r0",
+  authDomain: "auctify-7f830.firebaseapp.com",
+  databaseURL: "https://auctify-7f830-default-rtdb.firebaseio.com",
+  projectId: "auctify-7f830",
+  storageBucket: "auctify-7f830.firebasestorage.app",
+  messagingSenderId: "188915754238",
+  appId: "1:188915754238:web:167e869ad87175da7971af",
+  measurementId: "G-2DFKFVN3QL"
+};
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
