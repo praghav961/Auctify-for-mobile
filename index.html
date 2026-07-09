@@ -1022,7 +1022,12 @@ const firebaseConfig = {
         return;
       }
 
-      wrap.innerHTML = state.teams.map(team => {
+      // Sort teams alphabetically
+      const sortedTeams = [...state.teams].sort((a, b) =>
+        (a.name || "").localeCompare(b.name || "", "en", { sensitivity: "base" })
+      );
+
+      wrap.innerHTML = sortedTeams.map(team => {
         const stats = getTeamStats(team);
         const logo = team.logoUrl || placeholder(team.name?.[0] || "T");
 
