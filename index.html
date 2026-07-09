@@ -6,9 +6,6 @@
   <title>Tournament - Live Auction</title>
   <meta name="theme-color" content="#060d1a" />
 
-  <!-- Android Chrome resizes the visual viewport as its address bar / gesture
-       nav bar show or hide. This measures the real visible height with JS and 
-       keeps it in sync via the --vh custom property. -->
   <script>
     (function () {
       function setRealViewportHeight() {
@@ -712,10 +709,8 @@
 </head>
 <body>
 
-  <!-- Core App Shell Container -->
   <div id="app" class="app-shell">
 
-    <!-- Header Section -->
     <header class="app-header">
       <div class="header-left">
         <div class="icon-badge">🏏</div>
@@ -732,7 +727,6 @@
       </div>
     </header>
 
-    <!-- Score Summary Stats Grid -->
     <section class="stats-bar no-scrollbar">
       <div class="stat-card">
         <span class="stat-label">Teams</span>
@@ -764,10 +758,8 @@
       </div>
     </section>
 
-    <!-- Main Screens Swiper Workspace -->
     <main id="screenWrap">
 
-      <!-- SCREEN 1: Live Player & Updates -->
       <section class="screen active" id="screenLive">
         <div class="card">
           <div class="card-header">
@@ -792,7 +784,6 @@
         </div>
       </section>
 
-      <!-- SCREEN 2: Teams Performance Grid -->
       <section class="screen" id="screenTeams">
         <div class="screen-header">
           <h2 class="screen-title">🏆 Teams Dashboard</h2>
@@ -803,7 +794,6 @@
         </div>
       </section>
 
-      <!-- SCREEN 3: Players Filtered Dashboard -->
       <section class="screen screen--tight" id="screenPlayers">
         <div class="directory-controls">
           <div class="screen-header" style="border-bottom:none;padding-bottom:0;">
@@ -827,7 +817,6 @@
       </section>
     </main>
 
-    <!-- Bottom Navigation Bar -->
     <nav class="bottom-nav pb-safe">
       <button class="tab active" data-screen="screenLive">
         <span class="tab-icon">🎯</span>
@@ -844,7 +833,6 @@
     </nav>
   </div>
 
-  <!-- SOLD OVERLAY POPUP MODAL -->
   <div id="resultOverlay" class="result-overlay">
     <div class="overlay-card">
       <div class="overlay-glow"></div>
@@ -858,7 +846,6 @@
     </div>
   </div>
 
-  <!-- UNSOLD OVERLAY POPUP MODAL -->
   <div id="unsoldOverlay" class="result-overlay">
     <div class="overlay-card overlay-card-unsold">
       <div class="overlay-glow overlay-glow-unsold"></div>
@@ -871,7 +858,6 @@
     </div>
   </div>
 
-  <!-- SOFTWARE INFO MODAL -->
   <div id="infoModal" class="result-overlay">
     <div class="overlay-card" style="padding: 24px; animation: soldWrapPop 0.4s ease;">
       <h2 style="font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 12px;">About Software</h2>
@@ -884,7 +870,6 @@
     </div>
   </div>
 
-  <!-- Firebase Setup & App Logic -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -943,8 +928,8 @@ const firebaseConfig = {
       const slotsFilled = bought.length;
       const slotsLeft = Math.max(0, perTeam - slotsFilled);
       const purseLeft = Math.max(0, purse - spent);
-      const reserve = Math.max(0, slotsLeft - 1) * base;
-      const maxBid = Math.max(0, purseLeft - reserve);
+      const reserve = slotsLeft * base; 
+      const maxBid = slotsLeft > 0 ? Math.max(0, purseLeft - reserve) : 0;
 
       return { bought, spent, purseLeft, slotsFilled, slotsLeft, maxBid };
     }
