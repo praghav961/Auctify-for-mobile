@@ -875,16 +875,17 @@
     import { getFirestore, doc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-    const firebaseConfig = {
-      apiKey: "AIzaSyA33l9KR8Rnjob9QHfZbEa4aSHaNdDc0r0",
-      authDomain: "auctify-7f830.firebaseapp.com",
-      databaseURL: "https://auctify-7f830-default-rtdb.firebaseio.com",
-      projectId: "auctify-7f830",
-      storageBucket: "auctify-7f830.firebasestorage.app",
-      messagingSenderId: "188915754238",
-      appId: "1:188915754238:web:167e869ad87175da7971af",
-      measurementId: "G-2DFKFVN3QL"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyCWvHbZghVZu9aDUO-sHroxOiN0WXZ3AgI",
+  authDomain: "cricketauction-df77b.firebaseapp.com",
+  databaseURL: "https://cricketauction-df77b-default-rtdb.firebaseio.com",
+  projectId: "cricketauction-df77b",
+  storageBucket: "cricketauction-df77b.firebasestorage.app",
+  messagingSenderId: "1052181366792",
+  appId: "1:1052181366792:web:c86af556248567e9f5e9bd",
+  measurementId: "G-BF00NXYJJ9"
+};
+
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
@@ -928,7 +929,10 @@
       const slotsFilled = bought.length;
       const slotsLeft = Math.max(0, perTeam - slotsFilled);
       const purseLeft = Math.max(0, purse - spent);
-      const reserve = slotsLeft * base; 
+      
+      // ** UPDATED MAX BID CALCULATION **
+      // Reserve base price only for the *other* remaining slots (slotsLeft - 1)
+      const reserve = (slotsLeft - 1) * base; 
       const maxBid = slotsLeft > 0 ? Math.max(0, purseLeft - reserve) : 0;
 
       return { bought, spent, purseLeft, slotsFilled, slotsLeft, maxBid };
